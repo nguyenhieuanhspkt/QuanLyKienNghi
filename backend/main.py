@@ -31,6 +31,7 @@ DON_VI_LIST = ["PXVH", "PXNL", "PKT", "Hoàng Anh", "Thanh Tuấn"]
 TRANG_THAI_LIST = [
     "phong_ktat_len_phieu",
     "da_sua_chua_theo_doi",
+    "ktat_co_pyc",
     "da_cap_vat_tu",
     "cho_vat_tu",
 ]
@@ -175,6 +176,7 @@ def cap_nhat_tuan_moi():
 LABEL_TRANG_THAI = {
     "phong_ktat_len_phieu": "Phòng KTAT đang lên phiếu YC",
     "da_sua_chua_theo_doi": "Đã sửa chữa, đang theo dõi",
+    "ktat_co_pyc": "KTAT đã có PYC",
     "da_cap_vat_tu": "Đã cấp vật tư",
     "cho_vat_tu": "Đợi cấp vật tư",
 }
@@ -701,7 +703,7 @@ def import_word_xac_nhan(body: XacNhanWordRequest):
 
 class BangChiaViecItem(BaseModel):
     id: str
-    don_vi_phan_cong: Optional[str] = "CA_HAI"
+    don_vi_phan_cong: Optional[str] = "KTAT"
 
 class XuatBangChiaViecRequest(BaseModel):
     xuat: List[BangChiaViecItem]
@@ -744,43 +746,34 @@ def xuat_bang_chia_viec(body: XuatBangChiaViecRequest):
     ws.title = "Bảng chia việc"
 
     headers = [
-        "STT", "Mã KN", "Đơn vị", "Nội dung kiến nghị", "Kết quả tuần trước",
-        "Tình hình KTAT xử lý", "Đã có PYC?", "Số PYC",
-        "Thời hạn cấp VT", "Tình trạng cấp VT", "Ghi chú KHVT",
+        "STT", "Mã KN", "Đơn vị", "Nội dung kiến nghị", "Kết quả tuần trước", "Kết quả cập nhật",
     ]
     _write_header_row(ws, headers)
-    _set_col_widths(ws, [5, 13, 10, 40, 30, 30, 12, 10, 20, 25, 25])
+    _set_col_widths(ws, [5, 13, 10, 40, 35, 40])
 
-    yellow_fill = PatternFill("solid", fgColor="FFD966")
-    blue_fill   = PatternFill("solid", fgColor="9FC5E8")
-    grey_fill   = PatternFill("solid", fgColor="D9D9D9")
+    # Hàng KTAT: vàng nhạt — Hàng KHVT: xanh nhạt
+    yellow_fill = PatternFill("solid", fgColor="FFF2CC")
+    blue_fill   = PatternFill("solid", fgColor="DAEEF3")
     border = _cell_border()
 
     for i, kn in enumerate(kn_xuat, 1):
         row = i + 1
-        phan_cong = xuat_order[kn["id"]][1] or "CA_HAI"
+        phan_cong = xuat_order[kn["id"]][1] or "KTAT"
+        row_fill = yellow_fill if phan_cong == "KTAT" else blue_fill
 
         for col, val in enumerate(
             [i, kn["id"], kn["don_vi"], kn["noi_dung"], kn.get("tuan_truoc", "")], 1
         ):
-            _wrap_cell(ws.cell(row=row, column=col), val)
+            cell = ws.cell(row=row, column=col)
+            _wrap_cell(cell, val)
+            cell.fill = row_fill
 
-        ktat_fill = yellow_fill if phan_cong in ("KTAT", "CA_HAI") else grey_fill
-        khvt_fill = blue_fill   if phan_cong in ("KHVT", "CA_HAI") else grey_fill
-
-        for col in range(6, 9):   # F–H: vùng KTAT
-            c = ws.cell(row=row, column=col, value="")
-            c.fill = ktat_fill
-            c.border = border
-            c.alignment = Alignment(wrap_text=True, vertical="top")
-            c.font = Font(name="Arial", size=10)
-
-        for col in range(9, 12):  # I–K: vùng KHVT
-            c = ws.cell(row=row, column=col, value="")
-            c.fill = khvt_fill
-            c.border = border
-            c.alignment = Alignment(wrap_text=True, vertical="top")
-            c.font = Font(name="Arial", size=10)
+        # Cột F — để trống, KTAT/KHVT điền
+        f_cell = ws.cell(row=row, column=6, value="")
+        f_cell.fill = row_fill
+        f_cell.border = border
+        f_cell.alignment = Alignment(wrap_text=True, vertical="top")
+        f_cell.font = Font(name="Arial", size=10)
 
         ws.row_dimensions[row].height = 55
 
@@ -794,6 +787,62 @@ def xuat_bang_chia_viec(body: XuatBangChiaViecRequest):
         media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
         headers={"Content-Disposition": f"attachment; filename*=UTF-8''{ten_file}"},
     )
+
+
+# ─── Import bảng chia việc ───────────────────────────────────────────────────
+
+@app.post("/api/v1/import-bang-chia-viec", summary="Import Excel bảng chia việc đã điền (cột F)")
+async def import_bang_chia_viec(file: UploadFile = File(...)):
+    if not file.filename.endswith(".xlsx"):
+        raise HTTPException(400, "Chỉ hỗ trợ file .xlsx")
+    content = await file.read()
+    try:
+        wb = load_workbook(io.BytesIO(content), data_only=True)
+    except Exception:
+        raise HTTPException(400, "Không đọc được file Excel")
+
+    ws = wb.worksheets[0]
+    data = doc_data()
+    id_map = {kn["id"]: kn for kn in data["kien_nghi"]}
+
+    updated_ids = set()
+    skipped = []
+
+    for row_vals in ws.iter_rows(min_row=2, values_only=True):
+        ma_kn = _cell_str(row_vals, 2)
+        if not ma_kn or not ma_kn.startswith("KN-"):
+            continue
+        ket_qua = _cell_str(row_vals, 6)
+        if not ket_qua:
+            continue
+        if ma_kn in id_map:
+            id_map[ma_kn]["tuan_nay"] = ket_qua
+            updated_ids.add(ma_kn)
+        else:
+            skipped.append(ma_kn)
+
+    ghi_data(data)
+
+    updated_items = [
+        {
+            "id": kn["id"],
+            "don_vi": kn["don_vi"],
+            "noi_dung": kn["noi_dung"],
+            "tuan_nay": kn.get("tuan_nay", ""),
+            "trang_thai": kn["trang_thai"],
+            "thoi_han_vt": kn.get("thoi_han_vt"),
+            "hoan_thanh": kn["hoan_thanh"],
+        }
+        for kn in data["kien_nghi"]
+        if kn["id"] in updated_ids
+    ]
+
+    return {
+        "updated": len(updated_ids),
+        "skipped": len(skipped),
+        "items": updated_items,
+        "message": f"Đã cập nhật {len(updated_ids)} kiến nghị.",
+    }
 
 
 # ─── Thống kê ────────────────────────────────────────────────────────────────

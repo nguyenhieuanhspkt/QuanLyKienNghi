@@ -67,6 +67,16 @@ export const api = {
     }
     return res.json()
   },
+  importBangChiaViec: async (file) => {
+    const formData = new FormData()
+    formData.append("file", file)
+    const res = await fetch("/api/v1/import-bang-chia-viec", { method: "POST", body: formData })
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ detail: res.statusText }))
+      throw new Error(err.detail || "Lỗi không xác định")
+    }
+    return res.json()
+  },
   xuatBangChiaViec: async (body) => {
     const res = await fetch("/api/v1/xuat-bang-chia-viec", {
       method: "POST",

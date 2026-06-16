@@ -1,17 +1,23 @@
 import { useState, useEffect } from "react"
 import { api } from "../api"
+import ImportBangChiaViecModal from "../components/ImportBangChiaViecModal"
 
 const PHAN_CONG_OPTIONS = [
-  { value: "CA_HAI", label: "Cả hai" },
   { value: "KTAT", label: "P.KTAT" },
   { value: "KHVT", label: "P.KHVT" },
 ]
+
+// Suy phân công mặc định từ trạng thái KN
+function defaultPhanCong(trangThai) {
+  return ["ktat_co_pyc", "cho_vat_tu", "da_cap_vat_tu"].includes(trangThai) ? "KHVT" : "KTAT"
+}
 
 export default function BangChiaViecPage({ refreshKey }) {
   const [items, setItems] = useState([])
   const [loading, setLoading] = useState(true)
   const [exporting, setExporting] = useState(false)
   const [result, setResult] = useState(null)
+  const [showImport, setShowImport] = useState(false)
 
   useEffect(() => {
     load()
@@ -26,7 +32,7 @@ export default function BangChiaViecPage({ refreshKey }) {
         list.map((kn) => ({
           kn,
           selected: true,
-          phanCong: kn.don_vi_phan_cong || "CA_HAI",
+          phanCong: kn.don_vi_phan_cong || defaultPhanCong(kn.trang_thai),
           deleted: false,
         }))
       )
@@ -110,6 +116,12 @@ export default function BangChiaViecPage({ refreshKey }) {
             )}
           </div>
           <button
+            onClick={() => setShowImport(true)}
+            className="px-4 py-2 bg-indigo-50 text-indigo-700 border border-indigo-300 text-sm rounded font-medium hover:bg-indigo-100 transition-colors whitespace-nowrap"
+          >
+            📥 Import kết quả
+          </button>
+          <button
             onClick={handleXuat}
             disabled={exporting || selectedCount === 0}
             className="px-5 py-2 bg-blue-600 text-white text-sm rounded font-medium hover:bg-blue-700 disabled:opacity-50 transition-colors whitespace-nowrap"
@@ -146,6 +158,18 @@ export default function BangChiaViecPage({ refreshKey }) {
       )}
 
       {/* Bảng */}
+      {/* Legend */}
+      <div className="mb-3 flex gap-4 text-xs text-gray-500">
+        <span className="flex items-center gap-1.5">
+          <span className="inline-block w-3 h-3 rounded-sm bg-yellow-100 border border-yellow-300"></span>
+          Hàng vàng — P.KTAT điền
+        </span>
+        <span className="flex items-center gap-1.5">
+          <span className="inline-block w-3 h-3 rounded-sm bg-blue-100 border border-blue-300"></span>
+          Hàng xanh — P.KHVT điền
+        </span>
+      </div>
+
       <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
         <table className="w-full text-sm">
           <thead>
@@ -167,15 +191,15 @@ export default function BangChiaViecPage({ refreshKey }) {
                 </td>
               </tr>
             )}
-            {visible.map((it, idx) => (
+            {visible.map((it) => (
               <tr
                 key={it.kn.id}
                 className={`border-b border-gray-100 transition-colors ${
                   !it.selected
                     ? "bg-green-50/60"
-                    : idx % 2 === 0
-                    ? "bg-white"
-                    : "bg-gray-50/40"
+                    : it.phanCong === "KTAT"
+                    ? "bg-yellow-50/60"
+                    : "bg-blue-50/60"
                 }`}
               >
                 {/* Checkbox */}
@@ -246,6 +270,12 @@ export default function BangChiaViecPage({ refreshKey }) {
           </tbody>
         </table>
       </div>
+      {showImport && (
+        <ImportBangChiaViecModal
+          onClose={() => setShowImport(false)}
+          onDone={() => { setShowImport(false); load() }}
+        />
+      )}
     </div>
   )
 }

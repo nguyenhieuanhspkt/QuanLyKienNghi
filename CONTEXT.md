@@ -162,16 +162,13 @@ Row 2.5 hiển thị nested cards màu bên trong ô bảng:
 | C | Đơn vị phát sinh | App tạo |
 | D | Nội dung kiến nghị | App tạo |
 | E | Kết quả tuần trước | App tạo |
-| F | Tình hình KTAT xử lý | **P.KTAT điền** |
-| G | Đã có PYC chưa? (Có/Không) | **P.KTAT điền** |
-| H | Số PYC | **P.KTAT điền** |
-| I | Thời hạn cấp VT ước tính | **P.KHVT điền** |
-| J | Tình trạng cấp VT | **P.KHVT điền** |
-| K | Ghi chú KHVT | **P.KHVT điền** |
+| F | Kết quả cập nhật | **P.KTAT hoặc P.KHVT điền** |
 
-Cột A–E: nền trắng (App điền sẵn)  
-Cột F–H: nền vàng nhạt (vùng KTAT)  
-Cột I–K: nền xanh nhạt (vùng KHVT)
+Mỗi KN chỉ thuộc về KTAT hoặc KHVT, không có KN nào thuộc cả hai.  
+Phân biệt bằng **màu hàng**: 🟡 Hàng vàng = P.KTAT điền · 🔵 Hàng xanh = P.KHVT điền  
+Phân công mặc định tự động suy từ trạng thái KN:
+- `phong_ktat_len_phieu`, `da_sua_chua_theo_doi` → **KTAT**
+- `ktat_co_pyc`, `cho_vat_tu`, `da_cap_vat_tu` → **KHVT**
 
 ---
 
@@ -246,10 +243,14 @@ Cột I–K: nền xanh nhạt (vùng KHVT)
 - [x] **Buổi 15/06/2026** — **Import Word** — `python-docx` + `difflib`, 2 endpoints, `ImportWordModal.jsx`
 - [x] **Buổi 15/06/2026** — Import Word: tìm KN theo nội dung (search autocomplete), hỗ trợ gán vào KN đã HT → kích hoạt lại
 
+### Đã xong (buổi 16/06/2026)
+- [x] **Buổi 16/06/2026** — Redesign bảng chia việc: 6 cột (A–F), bỏ CA_HAI, phân công mặc định từ `trang_thai`
+- [x] **Buổi 16/06/2026** — `xuat_bang_chia_viec`: tô màu theo **hàng** (vàng=KTAT, xanh=KHVT), cột F để trống
+- [x] **Buổi 16/06/2026** — `import_bang_chia_viec` (`POST /api/v1/import-bang-chia-viec`): đọc cột B+F, cập nhật `tuan_nay`
+- [x] **Buổi 16/06/2026** — `ImportBangChiaViecModal.jsx`: upload → review (trạng thái + hoàn thành) → lưu
+- [x] **Buổi 16/06/2026** — Fix: thêm `ktat_co_pyc` vào `TRANG_THAI_LIST` và `LABEL_TRANG_THAI` trong `main.py`
+
 ### Cần làm (theo thứ tự ưu tiên)
-- [ ] **Xuất Excel bảng chia việc** — endpoint `GET /api/v1/xuat-bang-chia-viec`, cột A–K, tô màu vùng KTAT (vàng) / KHVT (xanh)
-- [ ] **Import Excel bảng chia việc** — endpoint `POST /api/v1/import-bang-chia-viec`, đọc cột F–K, cập nhật `ket_qua_ktat`, `so_pyc`, `ket_qua_khvt`, `thoi_han_vt`
-- [ ] **UI duyệt trạng thái** — sau import bảng chia việc, Kiệt chọn HT / chưa HT + trạng thái chi tiết cho từng KN
 - [ ] Deploy lên server LAN (sau khi kiểm thử xong)
 
 ---
@@ -293,27 +294,10 @@ Cột I–K: nền xanh nhạt (vùng KHVT)
 
 ## Kế hoạch buổi tiếp theo
 
-### 1. Xuất Excel bảng chia việc
-- Endpoint: `GET /api/v1/xuat-bang-chia-viec`
-- Cột A–E: app điền sẵn (nền trắng) — STT · Mã KN · Đơn vị · Nội dung · Kết quả tuần trước
-- Cột F–H: nền vàng nhạt, để trống → P.KTAT điền (Tình hình KTAT · Đã có PYC? · Số PYC)
-- Cột I–K: nền xanh nhạt, để trống → P.KHVT điền (Thời hạn VT · Tình trạng cấp VT · Ghi chú)
-- Frontend: nút **"📋 Xuất bảng chia việc"** trên header, cạnh "📥 Xuất Excel"
-
-### 2. Import Excel bảng chia việc đã điền
-- Endpoint: `POST /api/v1/import-bang-chia-viec`
-- Đọc cột B (Mã KN, key match) + cột F–K
-- Cập nhật DB: `ket_qua_ktat` (F), `so_pyc` (H), `thoi_han_vt` (I), `ket_qua_khvt` (J+K)
-- Tự động suy trang thái từ dữ liệu: có PYC → `ktat_co_pyc`; đã cấp VT → `da_cap_vat_tu`; chưa cấp → `cho_vat_tu`
-- Frontend: nút **"📥 Import bảng chia việc"** → modal upload 1 bước (không cần review phức tạp, Mã KN là key chắc chắn)
-
-### 3. UI duyệt trạng thái sau import
-- Sau khi import bảng chia việc, Kiệt review từng KN: chọn Hoàn thành / Chưa hoàn thành + trạng thái chi tiết
-- Có thể tích hợp vào trang Chưa hoàn thành (highlight những KN vừa được cập nhật)
-
-### 4. Deploy LAN
-- Chạy backend trực tiếp trên máy chủ cơ quan, frontend build static
-- Địa chỉ: `http://192.168.x.x:8000` (backend serve luôn frontend hoặc nginx đơn giản)
+### 1. Deploy LAN
+- Build frontend: `npm run build` (từ thư mục `frontend/`)
+- Chạy backend trên máy chủ cơ quan, backend tự serve `frontend/dist/` (đã cấu hình `StaticFiles`)
+- Địa chỉ: `http://192.168.x.x:8000`
 
 ---
 
@@ -332,6 +316,6 @@ Cột I–K: nền xanh nhạt (vùng KHVT)
 |-----|---------|-------------------|
 | Hiếu | Người code | — |
 | **Kiệt** (TTĐ) | Người dùng duy nhất | Toàn bộ thao tác trong App |
-| P.KTAT | Điền cột F–H bảng chia việc | Offline qua OneDrive |
-| P.KHVT (Thanh Tuấn, Hoàng Anh) | Điền cột I–K bảng chia việc | Offline qua OneDrive |
+| P.KTAT | Điền cột F bảng chia việc (hàng vàng) | Offline qua OneDrive |
+| P.KHVT (Thanh Tuấn, Hoàng Anh) | Điền cột F bảng chia việc (hàng xanh) | Offline qua OneDrive |
 | Hoàng (Tổ Trưởng) | Nhận báo cáo cuối tuần | Nhận file Excel, không dùng App |
