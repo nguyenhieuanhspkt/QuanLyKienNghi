@@ -45,6 +45,48 @@ export const api = {
     }
     return res.json()
   },
+  importWord: async (file) => {
+    const formData = new FormData()
+    formData.append("file", file)
+    const res = await fetch("/api/v1/import-word", { method: "POST", body: formData })
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ detail: res.statusText }))
+      throw new Error(err.detail || "Lỗi không xác định")
+    }
+    return res.json()
+  },
+  importWordXacNhan: async (body) => {
+    const res = await fetch("/api/v1/import-word/xac-nhan", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    })
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ detail: res.statusText }))
+      throw new Error(err.detail || "Lỗi không xác định")
+    }
+    return res.json()
+  },
+  xuatBangChiaViec: async (body) => {
+    const res = await fetch("/api/v1/xuat-bang-chia-viec", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    })
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ detail: res.statusText }))
+      throw new Error(err.detail || "Lỗi không xác định")
+    }
+    const blob = await res.blob()
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement("a")
+    const cd = res.headers.get("Content-Disposition") || ""
+    const match = cd.match(/filename\*=UTF-8''(.+)/)
+    a.download = match ? decodeURIComponent(match[1]) : "BangChiaViec.xlsx"
+    a.href = url
+    a.click()
+    URL.revokeObjectURL(url)
+  },
   xuatExcel: async () => {
     const res = await fetch("/api/v1/xuat-excel")
     if (!res.ok) throw new Error("Xuất Excel thất bại")

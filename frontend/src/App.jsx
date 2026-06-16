@@ -2,7 +2,10 @@ import { useState } from "react"
 import { BrowserRouter, NavLink, Routes, Route, Navigate } from "react-router-dom"
 import ChuaHoanThanh from "./pages/ChuaHoanThanh"
 import DaHoanThanh from "./pages/DaHoanThanh"
+import ThongKePage from "./pages/ThongKePage"
+import BangChiaViecPage from "./pages/BangChiaViecPage"
 import ImportWizardModal from "./components/ImportWizardModal"
+import ImportWordModal from "./components/ImportWordModal"
 import { api } from "./api"
 
 function ConfirmCapNhatTuan({ onClose, onDone }) {
@@ -60,6 +63,7 @@ function ConfirmCapNhatTuan({ onClose, onDone }) {
 function Layout() {
   const [showCapNhat, setShowCapNhat] = useState(false)
   const [showImport, setShowImport] = useState(false)
+  const [showImportWord, setShowImportWord] = useState(false)
   const [refreshKey, setRefreshKey] = useState(0)
   const [exporting, setExporting] = useState(false)
 
@@ -84,10 +88,18 @@ function Layout() {
         <div className="max-w-7xl mx-auto px-4 py-3 flex items-center gap-6">
           <h1 className="text-lg font-bold text-blue-700 whitespace-nowrap">Quản Lý Kiến Nghị</h1>
           <nav className="flex gap-2 flex-1">
+            <NavLink to="/thong-ke" className={linkClass}>Thống kê</NavLink>
             <NavLink to="/chua-hoan-thanh" className={linkClass}>Chưa hoàn thành</NavLink>
             <NavLink to="/da-hoan-thanh" className={linkClass}>Đã hoàn thành</NavLink>
+            <NavLink to="/bang-chia-viec" className={linkClass}>Bảng chia việc</NavLink>
           </nav>
           <div className="flex gap-2">
+            <button
+              className="whitespace-nowrap px-4 py-2 text-sm rounded border border-indigo-400 text-indigo-600 hover:bg-indigo-50 transition-colors"
+              onClick={() => setShowImportWord(true)}
+            >
+              📄 Import Word
+            </button>
             <button
               className="whitespace-nowrap px-4 py-2 text-sm rounded border border-blue-400 text-blue-600 hover:bg-blue-50 transition-colors"
               onClick={() => setShowImport(true)}
@@ -112,9 +124,11 @@ function Layout() {
       </header>
       <main className="max-w-7xl mx-auto px-4 py-6">
         <Routes>
-          <Route path="/" element={<Navigate to="/chua-hoan-thanh" replace />} />
+          <Route path="/" element={<Navigate to="/thong-ke" replace />} />
+          <Route path="/thong-ke" element={<ThongKePage refreshKey={refreshKey} />} />
           <Route path="/chua-hoan-thanh" element={<ChuaHoanThanh refreshKey={refreshKey} />} />
           <Route path="/da-hoan-thanh" element={<DaHoanThanh refreshKey={refreshKey} />} />
+          <Route path="/bang-chia-viec" element={<BangChiaViecPage refreshKey={refreshKey} />} />
         </Routes>
       </main>
       {showCapNhat && (
@@ -124,6 +138,12 @@ function Layout() {
         <ImportWizardModal
           onClose={() => setShowImport(false)}
           onDone={() => { setShowImport(false); setRefreshKey((k) => k + 1) }}
+        />
+      )}
+      {showImportWord && (
+        <ImportWordModal
+          onClose={() => setShowImportWord(false)}
+          onDone={() => { setShowImportWord(false); setRefreshKey((k) => k + 1) }}
         />
       )}
     </div>

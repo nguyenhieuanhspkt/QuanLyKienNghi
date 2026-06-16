@@ -27,3 +27,8 @@ npm-debug.log*
 
 # Claude Code
 .claude/
+
+# File dữ liệu Excel/Word (không commit vào repo)
+*.xlsx
+*.docx
+~$*

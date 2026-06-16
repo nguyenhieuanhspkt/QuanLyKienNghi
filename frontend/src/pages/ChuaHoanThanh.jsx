@@ -2,7 +2,6 @@ import { useEffect, useState } from "react"
 import { api } from "../api"
 import TrangThaiBadge from "../components/TrangThaiBadge"
 import KienNghiForm from "../components/KienNghiForm"
-import ThongKeDashboard from "../components/ThongKeDashboard"
 
 export default function ChuaHoanThanh({ refreshKey }) {
   const [data, setData] = useState([])
@@ -51,7 +50,6 @@ export default function ChuaHoanThanh({ refreshKey }) {
 
   return (
     <div>
-      <ThongKeDashboard refreshKey={refreshKey} />
       <div className="flex items-center justify-between mb-4">
         <h2 className="text-base font-semibold text-gray-800">
           Kiến nghị chưa hoàn thành
