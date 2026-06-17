@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react"
 import { api } from "../api"
 import ImportBangChiaViecModal from "../components/ImportBangChiaViecModal"
+import TrangThaiBadge from "../components/TrangThaiBadge"
 
 const PHAN_CONG_OPTIONS = [
   { value: "KTAT", label: "P.KTAT" },
@@ -9,7 +10,7 @@ const PHAN_CONG_OPTIONS = [
 
 // Suy phân công mặc định từ trạng thái KN
 function defaultPhanCong(trangThai) {
-  return ["ktat_co_pyc", "cho_vat_tu", "da_cap_vat_tu"].includes(trangThai) ? "KHVT" : "KTAT"
+  return ["ktat_co_pyc", "cho_vat_tu"].includes(trangThai) ? "KHVT" : "KTAT"
 }
 
 export default function BangChiaViecPage({ refreshKey }) {
@@ -18,6 +19,7 @@ export default function BangChiaViecPage({ refreshKey }) {
   const [exporting, setExporting] = useState(false)
   const [result, setResult] = useState(null)
   const [showImport, setShowImport] = useState(false)
+  const [query, setQuery] = useState("")
 
   useEffect(() => {
     load()
@@ -32,7 +34,7 @@ export default function BangChiaViecPage({ refreshKey }) {
         list.map((kn) => ({
           kn,
           selected: true,
-          phanCong: kn.don_vi_phan_cong || defaultPhanCong(kn.trang_thai),
+          phanCong: defaultPhanCong(kn.trang_thai),
           deleted: false,
         }))
       )
@@ -93,6 +95,14 @@ export default function BangChiaViecPage({ refreshKey }) {
   const htCount = visible.filter((it) => !it.selected).length
   const xoaCount = items.filter((it) => it.deleted).length
 
+  const q = query.trim().toLowerCase()
+  const displayItems = q
+    ? visible.filter((it) =>
+        [it.kn.id, it.kn.don_vi, it.kn.noi_dung, it.kn.tuan_truoc]
+          .some((f) => f && f.toLowerCase().includes(q))
+      )
+    : visible
+
   if (loading) {
     return <div className="text-center py-12 text-gray-400">Đang tải...</div>
   }
@@ -115,6 +125,13 @@ export default function BangChiaViecPage({ refreshKey }) {
               <span className="text-red-500 font-medium">🗑 Xóa: {xoaCount}</span>
             )}
           </div>
+          <input
+            type="text"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Tìm kiếm..."
+            className="px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-400 w-52"
+          />
           <button
             onClick={() => setShowImport(true)}
             className="px-4 py-2 bg-indigo-50 text-indigo-700 border border-indigo-300 text-sm rounded font-medium hover:bg-indigo-100 transition-colors whitespace-nowrap"
@@ -179,6 +196,7 @@ export default function BangChiaViecPage({ refreshKey }) {
               <th className="px-3 py-3 text-left w-20">Đơn vị</th>
               <th className="px-3 py-3 text-left">Nội dung kiến nghị</th>
               <th className="px-3 py-3 text-left w-60">Kết quả tuần trước</th>
+              <th className="px-3 py-3 text-left w-48">Lý do phân công</th>
               <th className="px-3 py-3 text-center w-36">Phân công</th>
               <th className="px-3 py-3 w-10"></th>
             </tr>
@@ -186,12 +204,12 @@ export default function BangChiaViecPage({ refreshKey }) {
           <tbody>
             {visible.length === 0 && (
               <tr>
-                <td colSpan={7} className="text-center py-12 text-gray-400">
-                  Không có kiến nghị nào chưa hoàn thành.
+                <td colSpan={8} className="text-center py-12 text-gray-400 italic">
+                  {q ? "Không tìm thấy kiến nghị nào." : "Không có kiến nghị nào chưa hoàn thành."}
                 </td>
               </tr>
             )}
-            {visible.map((it) => (
+            {displayItems.map((it) => (
               <tr
                 key={it.kn.id}
                 className={`border-b border-gray-100 transition-colors ${
@@ -232,6 +250,11 @@ export default function BangChiaViecPage({ refreshKey }) {
                   {it.kn.tuan_truoc || (
                     <span className="italic text-gray-300">Chưa có</span>
                   )}
+                </td>
+
+                {/* Lý do phân công */}
+                <td className="px-3 py-3">
+                  <TrangThaiBadge trangThai={it.kn.trang_thai} thoiHanVt={it.kn.thoi_han_vt} />
                 </td>
 
                 {/* Phân công */}

@@ -4,6 +4,7 @@ import { api } from "../api"
 export default function DaHoanThanh({ refreshKey }) {
   const [data, setData] = useState([])
   const [loading, setLoading] = useState(true)
+  const [query, setQuery] = useState("")
 
   async function load() {
     setLoading(true)
@@ -23,6 +24,14 @@ export default function DaHoanThanh({ refreshKey }) {
     load()
   }
 
+  const q = query.trim().toLowerCase()
+  const filtered = q
+    ? data.filter(kn =>
+        [kn.id, kn.don_vi, kn.noi_dung, kn.tuan_nay]
+          .some(f => f && f.toLowerCase().includes(q))
+      )
+    : data
+
   if (loading) return <p className="text-gray-500 text-sm">Đang tải...</p>
 
   return (
@@ -30,8 +39,17 @@ export default function DaHoanThanh({ refreshKey }) {
       <div className="flex items-center justify-between mb-4">
         <h2 className="text-base font-semibold text-gray-800">
           Kiến nghị đã hoàn thành
-          <span className="ml-2 text-sm font-normal text-gray-500">({data.length} mục)</span>
+          <span className="ml-2 text-sm font-normal text-gray-500">
+            ({q ? `${filtered.length}/${data.length}` : data.length} mục)
+          </span>
         </h2>
+        <input
+          type="text"
+          value={query}
+          onChange={e => setQuery(e.target.value)}
+          placeholder="Tìm kiếm..."
+          className="px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-400 w-52"
+        />
       </div>
 
       {data.length === 0 ? (
@@ -51,7 +69,14 @@ export default function DaHoanThanh({ refreshKey }) {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
-              {data.map((kn, idx) => (
+              {filtered.length === 0 && (
+                <tr>
+                  <td colSpan={7} className="text-center py-10 text-gray-400 italic">
+                    Không tìm thấy kiến nghị nào.
+                  </td>
+                </tr>
+              )}
+              {filtered.map((kn, idx) => (
                 <tr key={kn.id} className={idx % 2 === 0 ? "bg-white" : "bg-gray-50/50"}>
                   <td className="px-3 py-3 font-mono text-xs text-gray-500">{kn.id}</td>
                   <td className="px-3 py-3 font-medium text-gray-700">{kn.don_vi}</td>

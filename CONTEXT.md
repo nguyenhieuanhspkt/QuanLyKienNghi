@@ -250,8 +250,17 @@ Phân công mặc định tự động suy từ trạng thái KN:
 - [x] **Buổi 16/06/2026** — `ImportBangChiaViecModal.jsx`: upload → review (trạng thái + hoàn thành) → lưu
 - [x] **Buổi 16/06/2026** — Fix: thêm `ktat_co_pyc` vào `TRANG_THAI_LIST` và `LABEL_TRANG_THAI` trong `main.py`
 
+### Đã xong (buổi 17/06/2026)
+- [x] **Buổi 17/06/2026** — Deploy LAN: build frontend, tạo `start_server.bat`, mở firewall port 8000
+- [x] **Buổi 17/06/2026** — `BangChiaViecPage`: thêm cột "Lý do phân công" hiện `TrangThaiBadge` của `trang_thai`
+- [x] **Buổi 17/06/2026** — Fix `defaultPhanCong`: luôn tính lại từ `trang_thai` thay vì dùng giá trị cũ lưu trong DB
+- [x] **Buổi 17/06/2026** — Fix phân công: `da_cap_vat_tu` → **KTAT** (bỏ khỏi nhóm KHVT)
+- [x] **Buổi 17/06/2026** — Migrate `data.json`: `dang_len_pyc` → `phong_ktat_len_phieu`, `dang_theo_doi` → `da_sua_chua_theo_doi`
+- [x] **Buổi 17/06/2026** — `ThongKePage`: collapse/expand từng group (2.1–2.5) để xem danh sách KN chi tiết; row 2.5 có thêm cột Thời hạn
+- [x] **Buổi 17/06/2026** — Search input tìm kiếm nhanh tại 3 tab: Chưa HT, Đã HT, Bảng chia việc (client-side filter)
+
 ### Cần làm (theo thứ tự ưu tiên)
-- [ ] Deploy lên server LAN (sau khi kiểm thử xong)
+- [ ] Kiểm thử thực tế trên LAN
 
 ---
 
